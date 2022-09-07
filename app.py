@@ -9,7 +9,8 @@ def index():
 
 @app.route('/get-items')
 def get_items():
-    return jsonify(AWS_connector.describe_table)
+    return jsonify(AWS_connector.table_scan)
+    #return jsonify(AWS_connector.describe_table)
 
 
 if __name__ == '__main__':

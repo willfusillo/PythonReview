@@ -1,15 +1,18 @@
-
 import boto3
+import json
 import AWS_config
 
 def main():
-    client = boto_dynamo_connect()
+    client, dynamo_resource = boto_dynamo_connect()
     #table_creation_test(client)
     #table_check_alt()
     #boto_example("test_table")
     print("------")
-    ScannedTables = table_scan(client)
-    print(ScannedTables)
+    #ScannedTables = table_scan(client)
+    #print(ScannedTables)
+
+    #get_all_tables()
+    get_all_items(dynamo_resource)
 
 
 
@@ -20,65 +23,9 @@ def boto_dynamo_connect():
         aws_access_key_id=AWS_config.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=AWS_config.AWS_SECRET_ACCESS_KEY,
         region_name=AWS_config.AWS_REGION)
-    return client
-
-# Table Creation
-# May not need this section...
-'''
-app = Flask(__name__)
-app.config['DYNAMO_TABLES'] = [
-    {
-         TableName = 'users',
-         KeySchema=[dict(AttributeName='username', KeyType='HASH')],
-         AttributeDefinitions=[dict(AttributeName='username', AttributeType='S')],
-         ProvisionedThroughput=dict(ReadCapacityUnits=5, WriteCapacityUnits=5)
-        }, {
-         TableName='groups',
-         KeySchema=[dict(AttributeName='name', KeyType='HASH')],
-         AttributeDefinitions=[dict(AttributeName='name', AttributeType='S')],
-         ProvisionedThroughput=dict(ReadCapacityUnits=5, WriteCapacityUnits=5)
-    }
-]
-'''
-
-def table_creation_test(client):
-    dynamodb = boto3.resource('dynamodb', region_name=AWS_config.AWS_REGION)
-    table = dynamodb.create_table(
-        TableName='Movies',
-        KeySchema=[
-            {
-                'AttributeName': 'year',
-                'KeyType': 'HASH'  #Partition key
-            },
-            {
-                'AttributeName': 'title',
-                'KeyType': 'RANGE'  #Sort key
-            }
-        ],
-        AttributeDefinitions=[
-            {
-                'AttributeName': 'id',
-                'AttributeType': 'N'
-            },
-            {
-                'AttributeName': 'createdAt',
-                'AttributeType': 'S'
-            },
-
-        ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 10,
-            'WriteCapacityUnits': 10
-        }
-    )
-    print("Table status:", table.table_status)
-
-# Information Extraction -------
-"""
-# Table Checking
-def table_check():
-    for table_name, table in Dynamo.tables.items():
-        print(table_name, table)"""
+    dynamodb_resource = boto3.resource('dynamodb', region_name = AWS_config.AWS_REGION)
+    print(client)
+    return client, dynamodb_resource
 
 def table_check_alt():
     dynamodb = boto3.resource('dynamodb', region_name=AWS_config.AWS_REGION)
@@ -87,15 +34,6 @@ def table_check_alt():
     print(tables)
     for table in tables:
         print(table)
-
-# Example of boto3 table usage ------->> Generates an error...
-
-def boto_example(table_name):
-    dynamodb = boto3.resource('dynamodb')
-    table = dynamodb.Table(table_name)
-    print(table)
-    creation_time = str(table.creation_date_time)
-    print(table_name + " was created at:   " + creation_time)
 
 def table_scan(client):
     return client.scan(
@@ -107,5 +45,26 @@ def describe_table(client):
         TableName='Test_table'
     )
 
+def get_all_tables():
+    dynamodb = boto3.resource('dynamodb', region_name=AWS_config.AWS_REGION)
+
+    tables = list(dynamodb.tables.all())
+    print(tables)
+
+def get_all_items(dynamo_resource):
+    dynamodb_resource = boto3.resource('dynamodb', region_name = AWS_config.AWS_REGION)
+    table = dynamodb_resource.Table('Test_table')
+
+    response = table.scan()
+    table_data = response['Items']
+
+    while 'LastEvaluatedkey' in response:
+        response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+        table_data.extend(response['Items'])
+
+    if(len(table_data) <1):
+        print("No Items in table")
+
+    print(table_data)
 
 main()
